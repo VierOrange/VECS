@@ -1,5 +1,7 @@
 #include "ecs.h"
+
 #include <unordered_map>
+#include <typeinfo>
 
 class IComponentArray
 {
@@ -10,33 +12,42 @@ public:
 template <typename T>
 class ComponentArray:IComponentArray
 {
-    std::unordered_map<Entity, size_t> entityToIndex{};
-    std::unordered_map<size_t, Entity> indexToEntity{};
-    std::array<T>_data(MAX_ENTITIES);
-    size_t entityCount;
+    std::unordered_map<Entity, size_t> mEntityToIndex{};
+    std::unordered_map<size_t, Entity> mIndexToEntity{};
+    std::array<T,MAX_ENTITIES>mData{};
+    size_t mEntityCount{0};
 public:
-    void addData(Entity entity, T component);
-    void removeData(Entity entity);
-    T& getData(Entity entity);
+	void AddComponent(Entity entity,T comp);
+	void RemoveComponent(Entity entity);
+	void RemoveEntity(Entity entity);
+	T& GetData(Entity entity);
 };
 
 class ComponentManager
 {
-    std::unordered_map<char const *,IComponentArray *> ComponentArrays{};
-    std::unordered_map<char const *,ComponentType> ComponentTypes{};
-    size_t ComponentTypesCount;
+    std::unordered_map<char const *, IComponentArray *> mComponentArrays{};
+    std::unordered_map<char const *, ComponentType> mComponentTypes{};
+    size_t mComponentTypeCount{0};
+
     template<typename T>
-    T* GetComponentArray();
+    IComponentArray* GetComponentArray();
+
 public:
-    template<typename T>
-    ComponentType GetComponentType();
-    template<typename T>
-    T* GetComponent(Entity entity);
+
     template<typename T>
     void RegisterComponent();
+
     template<typename T>
-    void AddComponent(Entity entity);
+    void AddComponent(Entity entity,T comp);
+
     template<typename T>
     void RemoveComponent(Entity entity);
+
     void RemoveEntity(Entity entity);
+
+    template<typename T>
+    ComponentType GetComponentType();
+
+    template<typename T>
+    T& GetComponent(Entity entity);
 };

@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <bitset>
+#include <cassert>
 
 #define MAX_ENTITIES 5000
 #define MAX_COMPONENTS 32
