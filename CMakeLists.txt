@@ -1,15 +1,10 @@
-cmake_minimum_required(VERSION 3.2)
-project(ESC)
+cmake_minimum_required(VERSION 3.14)
+project(
+		ECS
+		VERSION 0.1
+		DESCRIPTION "An ECS using SIMD"
+		LANGUAGES CXX)
+set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 
-set(SOURCES entity.cpp component.cpp system.cpp)
-
-set(LIBRARY_NAME ecs)
-set(EXECUTABLE_NAME play)
-
-
-add_library(${LIBRARY_NAME} ${SOURCES})
-add_executable(${EXECUTABLE_NAME} play.cpp)
-
-target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(${EXECUTABLE_NAME} ${LIBRARY_NAME})
-target_compile_options(play PUBLIC -std=c++20 -Wall -Wfloat-conversion)
+add_subdirectory(tests EXCLUDE_FROM_ALL)
+add_subdirectory(src)

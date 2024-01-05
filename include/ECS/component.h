@@ -1,11 +1,75 @@
-#include "component.h"
+#pragma once
+#include "common.h"
+
+#include <unordered_map>
+#include <typeinfo>
+#include <memory>
+#include <iostream>
+
+struct Health
+{
+	int hp;
+};
+
+class IComponentArray
+{
+public:
+    virtual ~IComponentArray()=default;
+	virtual void RemoveEntity(Entity entity)=0;
+	virtual void PrintStorageInfo()=0;
+};
+
+template <typename T>
+class ComponentArray:public IComponentArray
+{
+    std::unordered_map<Entity, size_t> mEntityToIndex{};
+    std::unordered_map<size_t, Entity> mIndexToEntity{};
+    std::array<T,MAX_ENTITIES>mData{};
+    size_t mEntityCount{0};
+public:
+	void AddComponent(Entity entity,T comp);
+	void RemoveComponent(Entity entity);
+	void RemoveEntity(Entity entity)override;
+	void PrintStorageInfo()override;
+	T& GetData(Entity entity);
+};
+
+class ComponentManager
+{
+    std::unordered_map<char const *, IComponentArray *> mComponentArrays{};
+    std::unordered_map<char const *, ComponentType> mComponentTypes{};
+    size_t mComponentTypeCount{0};
+
+    template<typename T>
+    ComponentArray<T>* GetComponentArray();
+
+public:
+	void PrintComponents();
+
+    template<typename T>
+    void RegisterComponent();
+
+    template<typename T>
+    void AddComponent(Entity entity,T comp);
+
+    template<typename T>
+    void RemoveComponent(Entity entity);
+
+    void RemoveEntity(Entity entity);
+
+    template<typename T>
+    ComponentType GetComponentType();
+
+    template<typename T>
+    T& GetComponent(Entity entity);
+};
 
 template<typename T>
 void ComponentArray<T>::AddComponent(Entity entity, T comp)
 {
 	assert((mEntityToIndex.find(entity)==mEntityToIndex.end())&&"entity already has this component.");
 	mEntityToIndex.insert({entity,mEntityCount});
-	mIndexToEntity.insert({mEntityCount,entity})
+	mIndexToEntity.insert({mEntityCount,entity});
 	mData[mEntityCount] = comp;
 	++mEntityCount;
 }
@@ -34,24 +98,41 @@ void ComponentArray<T>::RemoveEntity(Entity entity)
 }
 
 template<typename T>
+void ComponentArray<T>::PrintStorageInfo()
+{
+	for(auto const & en:mEntityToIndex)
+		std::cout<<"["<<en.second<<"]:"<<"Entity "<<en.first<<std::endl;
+}
+
+template<typename T>
 T& ComponentArray<T>::GetData(Entity entity)
 {
 	return mData[entity];	
 }
 
+///////////////////////////////////////////////////////////////
+
+void ComponentManager::PrintComponents()
+{
+	for(auto const & compArray:mComponentArrays)
+	{
+		std::cout<<compArray.first+1<<":\n";
+		compArray.second->PrintStorageInfo();
+	}
+}
+
 template<typename T>
-IComponentArray* ComponentManager::GetComponentArray()
+ComponentArray<T>* ComponentManager::GetComponentArray()
 {
 	char const * pCompTypeName = typeid(T).name();
 	assert((mComponentArrays.find(pCompTypeName)!=mComponentArrays.end())&&"component not be registered.");
-	return mComponentArrays[pCompTypeName];
+	return reinterpret_cast<ComponentArray<T>*>(mComponentArrays[pCompTypeName]);
 }
-
 template<typename T>
 void ComponentManager::RegisterComponent()
 {
 	char const * pCompTypeName = typeid(T).name();
-	assert((mComponentArrays.find(compTypeName)==mComponentArrays.end())&&"component already be registered.");
+	assert((mComponentArrays.find(pCompTypeName)==mComponentArrays.end())&&"component already be registered.");
 	IComponentArray* pComponentArray = new ComponentArray<T>;
 	++mComponentTypeCount;
 	mComponentArrays.insert({pCompTypeName,pComponentArray});
@@ -90,3 +171,4 @@ T& ComponentManager::GetComponent(Entity entity)
 {
 	return GetComponentArray<T>()->GetData(entity);
 }
+

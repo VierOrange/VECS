@@ -1,4 +1,4 @@
-#include "entity.h"
+#include "ECS/entity.h"
 
 EntityManager::EntityManager()
 {
@@ -7,9 +7,9 @@ EntityManager::EntityManager()
 }
 Entity EntityManager::AddEntity()
 {
-	assert((LiveEntitiesCount>=MAX_ENTITIES)&&"invalid entity.");
+	assert((LiveEntitiesCount<MAX_ENTITIES)&&"invalid entity.");
 	
-	Entity newEntity = Entities.font();
+	Entity newEntity = Entities.front();
 	Entities.pop();
 	++LiveEntitiesCount;
 	return newEntity;

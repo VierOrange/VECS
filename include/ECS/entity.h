@@ -1,4 +1,5 @@
-#include "ecs.h"
+#pragma once
+#include "common.h"
 
 #include <queue>
 #include <array>
