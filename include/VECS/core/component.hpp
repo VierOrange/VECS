@@ -1,15 +1,11 @@
 #pragma once
-#include "common.h"
+#include "common.hpp"
 
 #include <unordered_map>
 #include <typeinfo>
 #include <memory>
 #include <iostream>
 
-struct Health
-{
-	int hp;
-};
 
 class IComponentArray
 {
