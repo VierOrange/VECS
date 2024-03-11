@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 project(
-		ECS
+		VECS
 		VERSION 0.1
-		DESCRIPTION "An ECS using SIMD"
+		DESCRIPTION "An ECS from VierOrange"
 		LANGUAGES CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 
