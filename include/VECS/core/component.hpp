@@ -12,7 +12,6 @@ class IComponentArray
 public:
     virtual ~IComponentArray()=default;
 	virtual void RemoveEntity(Entity entity)=0;
-	virtual void PrintStorageInfo()=0;
 };
 
 template <typename T>
@@ -26,7 +25,6 @@ public:
 	void AddComponent(Entity entity,T comp);
 	void RemoveComponent(Entity entity);
 	void RemoveEntity(Entity entity)override;
-	void PrintStorageInfo()override;
 	T& GetData(Entity entity);
 };
 
@@ -94,28 +92,12 @@ void ComponentArray<T>::RemoveEntity(Entity entity)
 }
 
 template<typename T>
-void ComponentArray<T>::PrintStorageInfo()
-{
-	for(auto const & en:mEntityToIndex)
-		std::cout<<"["<<en.second<<"]:"<<"Entity "<<en.first<<std::endl;
-}
-
-template<typename T>
 T& ComponentArray<T>::GetData(Entity entity)
 {
 	return mData[entity];	
 }
 
 ///////////////////////////////////////////////////////////////
-
-void ComponentManager::PrintComponents()
-{
-	for(auto const & compArray:mComponentArrays)
-	{
-		std::cout<<compArray.first+1<<":\n";
-		compArray.second->PrintStorageInfo();
-	}
-}
 
 template<typename T>
 ComponentArray<T>* ComponentManager::GetComponentArray()
@@ -147,7 +129,7 @@ void ComponentManager::RemoveComponent(Entity entity)
 	GetComponentArray<T>()->RemoveComponent(entity);
 }
 
-void ComponentManager::RemoveEntity(Entity entity)
+inline void ComponentManager::RemoveEntity(Entity entity)
 {
 	for(auto compArray : mComponentArrays)
 		compArray.second->RemoveEntity(entity);
