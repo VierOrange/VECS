@@ -87,12 +87,13 @@ class ComponentArray : public IComponentArray
 
 class ComponentManager
 {
-	std::unordered_map<char const *, IComponentArray *> mComponentArrays{};
+	std::unordered_map<char const *, std::shared_ptr<IComponentArray>>
+		mComponentArrays{};
 	std::unordered_map<char const *, ComponentType> mComponentTypes{};
 	size_t mComponentTypeCount{0};
 
 	template <typename T>
-	ComponentArray<T> *GetComponentArray();
+	std::shared_ptr<ComponentArray<T>> GetComponentArray();
 
   public:
 	template <typename T>
@@ -254,12 +255,12 @@ T &ComponentArray<T>::GetData(Entity entity)
 ///////////////////////////////////////////////////////////////
 
 template <typename T>
-ComponentArray<T> *ComponentManager::GetComponentArray()
+std::shared_ptr<ComponentArray<T>> ComponentManager::GetComponentArray()
 {
 	char const *compTypeName = typeid(T).name();
 	assert((mComponentArrays.find(compTypeName) != mComponentArrays.end()) &&
 		   "component not be registered.");
-	return reinterpret_cast<ComponentArray<T> *>(
+	return std::static_pointer_cast<ComponentArray<T>>(
 		mComponentArrays[compTypeName]);
 }
 template <typename T>
@@ -268,7 +269,8 @@ void ComponentManager::RegisterComponent()
 	char const *compTypeName = typeid(T).name();
 	assert((mComponentArrays.find(compTypeName) == mComponentArrays.end()) &&
 		   "component already be registered.");
-	IComponentArray *pComponentArray = new ComponentArray<T>;
+	std::shared_ptr<IComponentArray> pComponentArray =
+		std::make_shared<ComponentArray<T>>();
 	++mComponentTypeCount;
 	mComponentArrays.insert({compTypeName, pComponentArray});
 	mComponentTypes.insert({compTypeName, mComponentTypeCount});
@@ -442,6 +444,7 @@ void Entity::RemoveComponent()
 }
 } // namespace internal
 extern std::shared_ptr<internal::World> WorldPtr;
+extern bool Exit;
 void Init();
 void Build();
 void Run();
