@@ -1,7 +1,8 @@
 #pragma once
 #include <cstdio>
 
-#include "VECS/comps/Health.hpp"
+#include "VECS/comps/Controllable.hpp"
+#include "VECS/comps/Render.hpp"
 #include "VECS/core/vecs.hpp"
 
 struct LoggingSystem : VECS::internal::System
@@ -10,8 +11,10 @@ struct LoggingSystem : VECS::internal::System
 	{
 		for (VECS::internal::Entity en : mEntities)
 		{
-			Health &health = en.GetComponent<Health>();
-			std::printf("Health: %d/%d\n",health.HP,health.maxHP);
+			Render &render	  = en.GetComponent<Render>();
+			Controllable &con = en.GetComponent<Controllable>();
+			std::printf("Render: %d %d\n",render.type ,render.index );
+			std::printf("Controllable: %d %d\n",con.type ,con.isControlled );
 		}
 	}
 };

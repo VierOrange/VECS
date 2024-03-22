@@ -7,7 +7,17 @@
 
 #include "SDL_surface.h"
 #include "SDL_video.h"
+#include "VECS/comps/Render.hpp"
 #include "VECS/core/vecs.hpp"
+enum KeyPressSurfaces
+{
+	SURFACE_DEFAULT,
+	SURFACE_KEY_UP,
+	SURFACE_KEY_DOWN,
+	SURFACE_KEY_LEFT,
+	SURFACE_KEY_RIGHT,
+	SURFACE_TOTAL,
+};
 
 struct RenderSystem : VECS::internal::System
 {
@@ -16,12 +26,35 @@ struct RenderSystem : VECS::internal::System
 	int mWindowsHeight;
 	SDL_Window *pWindow;
 	SDL_Surface *pSurface;
+	SDL_Surface *pKeyPressSurfaces[SURFACE_TOTAL];
+
+	SDL_Surface *loadSurface(std::string path);
 
   public:
 	RenderSystem();
 	~RenderSystem();
 	void Update();
 };
+inline SDL_Surface *RenderSystem::loadSurface(std::string path)
+{
+	std::string fullPath	   = VECS::AssetsPath + path;
+	SDL_Surface *loadedSurface = SDL_LoadBMP(fullPath.c_str());
+	if (loadedSurface == NULL)
+	{
+		std::printf("%s\n", SDL_GetError());
+	}
+	else
+	{
+		loadedSurface = SDL_ConvertSurface(loadedSurface, pSurface->format, 0);
+		if (loadedSurface == NULL)
+		{
+			std::printf("%s\n", SDL_GetError());
+		}
+	}
+	// assert(loadedSurface != NULL && SDL_GetError());
+	// assert(loadedSurface != NULL && "Loading surface failed.");
+	return loadedSurface;
+}
 
 inline RenderSystem::RenderSystem()
 {
@@ -56,10 +89,31 @@ inline RenderSystem::RenderSystem()
 				pSurface, NULL, SDL_MapRGB(pSurface->format, 0xFF, 0xFF, 0xFF));
 		}
 	}
+	pKeyPressSurfaces[SURFACE_DEFAULT]	 = loadSurface("default_surface.bmp");
+	pKeyPressSurfaces[SURFACE_KEY_UP]	 = loadSurface("up_surface.bmp");
+	pKeyPressSurfaces[SURFACE_KEY_DOWN]	 = loadSurface("down_surface.bmp");
+	pKeyPressSurfaces[SURFACE_KEY_LEFT]	 = loadSurface("left_surface.bmp");
+	pKeyPressSurfaces[SURFACE_KEY_RIGHT] = loadSurface("right_surface.bmp");
 }
 inline RenderSystem::~RenderSystem()
 {
 	SDL_DestroyWindow(pWindow);
 	SDL_Quit();
 }
-inline void RenderSystem::Update() { SDL_UpdateWindowSurface(pWindow); }
+inline void RenderSystem::Update()
+{
+//	SDL_Rect stretchRect;
+//	stretchRect.x = 0;
+//	stretchRect.y = 0;
+//	stretchRect.w = mWindowsWidth;
+//	stretchRect.h = mWindowsHeight;
+	for (VECS::internal::Entity en : mEntities)
+	{
+		Render &render = en.GetComponent<Render>();
+	//	SDL_BlitSurface(pKeyPressSurfaces[render.index], NULL, pSurface, NULL);
+	SDL_BlitScaled(
+			pKeyPressSurfaces[render.index], NULL, pSurface, NULL);
+	}
+
+	SDL_UpdateWindowSurface(pWindow);
+}

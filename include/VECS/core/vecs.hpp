@@ -349,7 +349,7 @@ inline void SystemManager::EntitySignatureChanged(Entity entity,
 {
 	for (auto const &pair : mSignatures)
 	{
-		if ((signature & pair.second) == signature)
+		if ((signature & pair.second) == pair.second)
 			mSystems[pair.first]->mEntities.insert(entity);
 		else
 			mSystems[pair.first]->mEntities.erase(entity);
@@ -445,6 +445,7 @@ void Entity::RemoveComponent()
 } // namespace internal
 extern std::shared_ptr<internal::World> WorldPtr;
 extern bool Exit;
+extern std::string AssetsPath; 
 void Init();
 void Build();
 void Run();
