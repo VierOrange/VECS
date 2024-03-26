@@ -43,6 +43,8 @@ class Entity
 
 	template <typename T>
 	void RemoveComponent();
+
+	void Destory();
 };
 
 class EntityManager
@@ -418,6 +420,8 @@ void World::RemoveComponent(Entity entity)
 inline void World::Destory(Entity entity)
 {
 	pEntityManager->RemoveEntity(entity);
+	pComponentManager->RemoveEntity(entity);
+	pSystemManager->RemoveEntity(entity);
 }
 
 inline std::weak_ptr<World> Entity::pWorld;
@@ -437,10 +441,15 @@ inline T &Entity::GetComponent()
 }
 
 template <typename T>
-void Entity::RemoveComponent()
+inline void Entity::RemoveComponent()
 {
 	assert(!pWorld.expired() && "VECS not initialized");
 	pWorld.lock()->RemoveComponent<T>(mID);
+}
+inline void Entity::Destory()
+{
+	assert(!pWorld.expired() && "VECS not initialized");
+	pWorld.lock()->Destory(mID);
 }
 } // namespace internal
 extern std::shared_ptr<internal::World> WorldPtr;
