@@ -2,5 +2,7 @@
 
 struct Render{
 int type;
-int index;
+int texture;
+int w;
+int h;
 };

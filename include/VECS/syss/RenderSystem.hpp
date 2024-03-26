@@ -1,34 +1,52 @@
 #pragma once
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <SDL2/_real_SDL_config.h>
 #include <cstdio>
 #include <stdio.h>
+#include <vector>
 
+#include "SDL_rect.h"
+#include "SDL_render.h"
 #include "SDL_surface.h"
 #include "SDL_video.h"
-#include "VECS/comps/Render.hpp"
-#include "VECS/core/vecs.hpp"
-enum KeyPressSurfaces
-{
-	SURFACE_DEFAULT,
-	SURFACE_KEY_UP,
-	SURFACE_KEY_DOWN,
-	SURFACE_KEY_LEFT,
-	SURFACE_KEY_RIGHT,
-	SURFACE_TOTAL,
-};
 
+#include "VECS/comps/Render.hpp"
+#include "VECS/comps/Transform.hpp"
+#include "VECS/core/vecs.hpp"
+enum Textures
+{
+	RED,
+	WHITE,
+	GOLD,
+	SILVER,
+	DIRT,
+	STONE,
+};
+enum RenderType
+{
+	TILE,
+	PLAYER,
+	UI
+};
+inline auto cmp = [](VECS::internal::Entity a, VECS::internal::Entity b) {
+	return a.GetComponent<Render>().type < b.GetComponent<Render>().type;
+};
 struct RenderSystem : VECS::internal::System
 {
   private:
 	int mWindowsWidth;
 	int mWindowsHeight;
 	SDL_Window *pWindow;
+	SDL_Renderer *pRender;
+	SDL_Texture *pTexture;
 	SDL_Surface *pSurface;
-	SDL_Surface *pKeyPressSurfaces[SURFACE_TOTAL];
 
 	SDL_Surface *loadSurface(std::string path);
+	SDL_Texture *loadTexture(std::string path);
+	void setRenderDrawTexture(int texture);
+	void renderEntity(VECS::internal::Entity en);
 
   public:
 	RenderSystem();
@@ -55,14 +73,70 @@ inline SDL_Surface *RenderSystem::loadSurface(std::string path)
 	// assert(loadedSurface != NULL && "Loading surface failed.");
 	return loadedSurface;
 }
+inline SDL_Texture *RenderSystem::loadTexture(std::string path)
+{
 
+	std::string fullPath	   = VECS::AssetsPath + path;
+	SDL_Texture *loadedTexture = NULL;
+	SDL_Surface *loadedSurface = IMG_Load(fullPath.c_str());
+	if (loadedSurface == NULL)
+	{
+		std::printf("SDL_Error: %s\n", SDL_GetError());
+	}
+	else
+	{
+		loadedTexture = SDL_CreateTextureFromSurface(pRender, loadedSurface);
+		if (loadedTexture == NULL)
+		{
+			std::printf("SDL_Error: %s\n", SDL_GetError());
+		}
+		SDL_FreeSurface(loadedSurface);
+	}
+	return loadedTexture;
+}
+inline void RenderSystem::setRenderDrawTexture(int texture)
+{
+	switch (texture)
+	{
+	case GOLD:
+		SDL_SetRenderDrawColor(pRender, 0xFF, 0xDF, 0x00, 0xFF);
+		break;
+	case SILVER:
+		SDL_SetRenderDrawColor(pRender, 0xC1, 0xBF, 0xBD, 0xFF);
+		break;
+	case DIRT:
+		SDL_SetRenderDrawColor(pRender, 0x9B, 0x76, 0x53, 0xFF);
+		break;
+	case STONE:
+		SDL_SetRenderDrawColor(pRender, 0x88, 0x8C, 0x8D, 0xFF);
+		break;
+	default:
+		SDL_SetRenderDrawColor(pRender, 0x88, 0x8C, 0x8D, 0xFF);
+		break;
+	}
+}
+inline void RenderSystem::renderEntity(VECS::internal::Entity en)
+{
+	Render &render		 = en.GetComponent<Render>();
+	Transform &transform = en.GetComponent<Transform>();
+
+	SDL_Rect fillRect = {static_cast<int>(transform.x),
+						 static_cast<int>(transform.y),
+						 render.w,
+						 render.h};
+	setRenderDrawTexture(render.texture);
+	SDL_RenderFillRect(pRender, &fillRect);
+}
 inline RenderSystem::RenderSystem()
 {
 	int mWindowsWidth  = 640;
 	int mWindowsHeight = 480;
 
 	pWindow	 = NULL;
+	pRender	 = NULL;
+	pTexture = NULL;
 	pSurface = NULL;
+
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
 		std::printf("SDL could not initialize! SDL_Error: %s\n",
@@ -87,33 +161,56 @@ inline RenderSystem::RenderSystem()
 			pSurface = SDL_GetWindowSurface(pWindow);
 			SDL_FillRect(
 				pSurface, NULL, SDL_MapRGB(pSurface->format, 0xFF, 0xFF, 0xFF));
+			pRender = SDL_CreateRenderer(pWindow, -1, SDL_RENDERER_ACCELERATED);
+			if (pRender == NULL)
+			{
+				std::printf("SDL_Error: %s\n", SDL_GetError());
+			}
+			else
+			{
+				SDL_SetRenderDrawColor(pRender, 0xFF, 0xFF, 0xFF, 0xFF);
+				int imgFlags = IMG_INIT_PNG;
+				if ((IMG_Init(imgFlags) & imgFlags) == 0)
+				{
+					std::printf("SDL_Error: %s\n", SDL_GetError());
+				}
+			}
 		}
 	}
-	pKeyPressSurfaces[SURFACE_DEFAULT]	 = loadSurface("default_surface.bmp");
-	pKeyPressSurfaces[SURFACE_KEY_UP]	 = loadSurface("up_surface.bmp");
-	pKeyPressSurfaces[SURFACE_KEY_DOWN]	 = loadSurface("down_surface.bmp");
-	pKeyPressSurfaces[SURFACE_KEY_LEFT]	 = loadSurface("left_surface.bmp");
-	pKeyPressSurfaces[SURFACE_KEY_RIGHT] = loadSurface("right_surface.bmp");
 }
 inline RenderSystem::~RenderSystem()
 {
+	SDL_DestroyTexture(pTexture);
+	SDL_DestroyRenderer(pRender);
 	SDL_DestroyWindow(pWindow);
+
+	pTexture = NULL;
+	pRender	 = NULL;
+	pWindow	 = NULL;
+
+	IMG_Quit();
 	SDL_Quit();
 }
 inline void RenderSystem::Update()
 {
-//	SDL_Rect stretchRect;
-//	stretchRect.x = 0;
-//	stretchRect.y = 0;
-//	stretchRect.w = mWindowsWidth;
-//	stretchRect.h = mWindowsHeight;
+	SDL_SetRenderDrawColor(pRender, 0x8C, 0x59, 0x15, 0xFF);
+	SDL_RenderClear(pRender);
+	std::set<VECS::internal::Entity, decltype(cmp)> zBuffer;
 	for (VECS::internal::Entity en : mEntities)
 	{
 		Render &render = en.GetComponent<Render>();
-	//	SDL_BlitSurface(pKeyPressSurfaces[render.index], NULL, pSurface, NULL);
-	SDL_BlitScaled(
-			pKeyPressSurfaces[render.index], NULL, pSurface, NULL);
+		switch (render.type)
+		{
+		case PLAYER:
+			zBuffer.insert(en);
+			break;
+		default:
+			renderEntity(en);
+			break;
+		}
 	}
-
-	SDL_UpdateWindowSurface(pWindow);
+	for (VECS::internal::Entity en : zBuffer){
+			renderEntity(en);
+	}
+	SDL_RenderPresent(pRender);
 }
