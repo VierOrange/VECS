@@ -4,38 +4,61 @@
 #include "SDL_keycode.h"
 #include "VECS/comps/Controllable.hpp"
 #include "VECS/comps/Render.hpp"
+#include "VECS/comps/Velocity.hpp"
 #include "VECS/core/vecs.hpp"
 #include <SDL2/SDL.h>
-#include <cstdio>
+#include <span>
 
+enum ControlSet
+{
+	CPLAYER,
+	CUI
+};
 struct InputSystem : VECS::internal::System
 {
   private:
 	SDL_Event e;
 	void ControlDefault(VECS::internal::Entity en);
+	void ControlPlayer(VECS::internal::Entity en);
 
   public:
 	void Update();
 };
-inline void InputSystem::ControlDefault(VECS::internal::Entity en)
+inline void InputSystem::ControlDefault(VECS::internal::Entity en) {}
+inline void InputSystem::ControlPlayer(VECS::internal::Entity en)
 {
-	Render &render = en.GetComponent<Render>();
+			Velocity &velocity = en.GetComponent<Velocity>();
 	switch (e.key.keysym.sym)
 	{
 	case SDLK_UP:
-		render.index = 1;
+		if (velocity.vx != 0)
+		{
+			velocity.vy = -std::abs(velocity.vx);
+			velocity.vx = 0;
+		}
 		break;
 	case SDLK_DOWN:
-		render.index = 2;
+		if (velocity.vx != 0)
+		{
+			velocity.vy = std::abs(velocity.vx);
+			velocity.vx = 0;
+		}
 		break;
 	case SDLK_LEFT:
-		render.index = 3;
+		if (velocity.vy != 0)
+		{
+			velocity.vx = -std::abs(velocity.vy);
+			velocity.vy = 0;
+		}
 		break;
 	case SDLK_RIGHT:
-		render.index = 4;
+		if (velocity.vy != 0)
+		{
+			velocity.vx = std::abs(velocity.vy);
+			velocity.vy = 0;
+		}
 		break;
 	default:
-		render.index = 0;
 		break;
 	}
 }
@@ -56,6 +79,9 @@ inline void InputSystem::Update()
 				{
 					switch (con.type)
 					{
+					case CPLAYER:
+						ControlPlayer(en);
+						break;
 					default:
 						ControlDefault(en);
 						break;
