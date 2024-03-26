@@ -4,8 +4,11 @@
 
 #include "utils.hpp"
 #include "VECS/comps/Velocity.hpp"
+#include "VECS/comps/Collider.hpp"
 #include "VECS/comps/Transform.hpp"
 #include "VECS/syss/InputSystem.hpp"
+#include "VECS/syss/CombatSystem.hpp"
+#include "VECS/syss/CollisionSystem.hpp"
 #include "VECS/syss/LoggingSystem.hpp"
 #include "VECS/syss/PhysicsSystem.hpp"
 #include "VECS/syss/RenderSystem.hpp"
@@ -32,6 +35,8 @@ void Build()
 	World.RegisterComponent<Controllable>();
 	World.RegisterComponent<Transform>();
 	World.RegisterComponent<Velocity>();
+	World.RegisterComponent<Collider>();
+	World.RegisterComponent<Health>();
 
 	// Register all systems here
 	Signature signature;
@@ -53,6 +58,20 @@ void Build()
 	World.RegisterSystem<PhysicsSystem>();
 	World.SetSystemSignature<PhysicsSystem>(signature);
 
+	signature.reset();
+
+	signature.set(World.GetComponentType<Transform>());
+	signature.set(World.GetComponentType<Collider>());
+	World.RegisterSystem<CollisionSystem>();
+	World.SetSystemSignature<CollisionSystem>(signature);
+
+	signature.reset();
+
+	signature.set(World.GetComponentType<Collider>());
+	signature.set(World.GetComponentType<Health>());
+	World.RegisterSystem<CombatSystem>();
+	World.SetSystemSignature<CombatSystem>(signature);
+
 	//	World.RegisterSystem<LoggingSystem>();
 	//	World.SetSystemSignature<LoggingSystem>(signature);
 
@@ -67,12 +86,18 @@ void Build()
 	player.AddComponent<Controllable>(Controllable{CPLAYER, true});
 	player.AddComponent<Transform>(Transform{10, 10});
 	player.AddComponent<Velocity>(Velocity{60, 0});
+	player.AddComponent<Collider>(Collider{40,40,0,DYNAMIC});
+	player.AddComponent<Health>(Health{100000,100000});
 	//	player.AddComponent<>({});
+	Collider tileCollider{10,10,0,STATIC};
+	Health tileHealth{1,1};
 	for (int i = 0; i < 3072; ++i)
 	{
 		VECS::internal::Entity tile = World.Create();
 
 		tile.AddComponent<Render>(Render{TILE,genRand(0,4),10,10});
+		tile.AddComponent<Collider>(tileCollider);
+		tile.AddComponent<Health>(tileHealth);
 		tile.AddComponent<Transform>(Transform{
 			10.f * static_cast<int>(i % 64), 10.f * static_cast<int>(i / 64)});
 	}
@@ -84,14 +109,18 @@ void Run()
 	auto last			   = std::chrono::high_resolution_clock::now();
 	auto now			   = std::chrono::high_resolution_clock::now();
 	float dt			   = 0;
+
 	while (!Exit)
 	//	for(int i = 0;i<60;++i)
 	{
 		now	 = std::chrono::high_resolution_clock::now();
 		dt	 = std::chrono::duration<float, std::ratio<1>>(now - last).count();
 		last = now;
+
 		World.GetSystem<InputSystem>()->Update();
 		World.GetSystem<PhysicsSystem>()->Update(dt);
+		World.GetSystem<CollisionSystem>()->Update();
+		World.GetSystem<CombatSystem>()->Update();
 		//		World.GetSystem<LoggingSystem>()->Update(dt);
 		World.GetSystem<RenderSystem>()->Update();
 	}
