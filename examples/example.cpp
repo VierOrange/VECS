@@ -2,16 +2,16 @@
 #include <chrono>
 #include <ratio>
 
-#include "utils.hpp"
-#include "VECS/comps/Velocity.hpp"
 #include "VECS/comps/Collider.hpp"
 #include "VECS/comps/Transform.hpp"
-#include "VECS/syss/InputSystem.hpp"
-#include "VECS/syss/CombatSystem.hpp"
+#include "VECS/comps/Velocity.hpp"
 #include "VECS/syss/CollisionSystem.hpp"
+#include "VECS/syss/CombatSystem.hpp"
+#include "VECS/syss/InputSystem.hpp"
 #include "VECS/syss/LoggingSystem.hpp"
 #include "VECS/syss/PhysicsSystem.hpp"
 #include "VECS/syss/RenderSystem.hpp"
+#include "utils.hpp"
 
 namespace VECS
 {
@@ -54,6 +54,10 @@ void Build()
 	signature.reset();
 
 	signature.set(World.GetComponentType<Transform>());
+
+	World.RegisterSystem<LoggingSystem>();
+	World.SetSystemSignature<LoggingSystem>(signature);
+
 	signature.set(World.GetComponentType<Velocity>());
 	World.RegisterSystem<PhysicsSystem>();
 	World.SetSystemSignature<PhysicsSystem>(signature);
@@ -72,9 +76,6 @@ void Build()
 	World.RegisterSystem<CombatSystem>();
 	World.SetSystemSignature<CombatSystem>(signature);
 
-	//	World.RegisterSystem<LoggingSystem>();
-	//	World.SetSystemSignature<LoggingSystem>(signature);
-
 	// Create initial entities here
 
 	// VECS::internal::Entity background = World.Create();
@@ -82,24 +83,28 @@ void Build()
 	// background.AddComponent<Controllable>(Controllable{0,1});
 	//
 	VECS::internal::Entity player = World.Create();
-	player.AddComponent<Render>(Render{PLAYER, SILVER,40,40});
+	player.AddComponent<Render>(Render{PLAYER, SILVER, 40, 40});
 	player.AddComponent<Controllable>(Controllable{CPLAYER, true});
 	player.AddComponent<Transform>(Transform{10, 10});
 	player.AddComponent<Velocity>(Velocity{60, 0});
-	player.AddComponent<Collider>(Collider{40,40,0,DYNAMIC});
-	player.AddComponent<Health>(Health{100000,100000});
+	player.AddComponent<Collider>(Collider{40, 40, 0, DYNAMIC});
+	player.AddComponent<Health>(Health{100000, 100000});
 	//	player.AddComponent<>({});
-	Collider tileCollider{10,10,0,STATIC};
-	Health tileHealth{1,1};
-	for (int i = 0; i < 3072; ++i)
+	int len	   = 2;
+	int num	   = 640 * 480 / (len * len);
+	int rowNum = 640 / len;
+	Collider tileCollider{len, len, 0, STATIC};
+	Health tileHealth{1, 1};
+	for (int i = 0; i < num; ++i)
 	{
 		VECS::internal::Entity tile = World.Create();
 
-		tile.AddComponent<Render>(Render{TILE,genRand(0,4),10,10});
+		tile.AddComponent<Render>(Render{TILE, genRand(0, 4), len, len});
 		tile.AddComponent<Collider>(tileCollider);
 		tile.AddComponent<Health>(tileHealth);
-		tile.AddComponent<Transform>(Transform{
-			10.f * static_cast<int>(i % 64), 10.f * static_cast<int>(i / 64)});
+		tile.AddComponent<Transform>(
+			Transform{float(len) * static_cast<int>(i % rowNum),
+					  float(len) * static_cast<int>(i / rowNum)});
 	}
 }
 void Run()
@@ -119,10 +124,10 @@ void Run()
 
 		World.GetSystem<InputSystem>()->Update();
 		World.GetSystem<PhysicsSystem>()->Update(dt);
-		World.GetSystem<CollisionSystem>()->Update();
-		World.GetSystem<CombatSystem>()->Update();
-		//		World.GetSystem<LoggingSystem>()->Update(dt);
+		//World.GetSystem<CollisionSystem>()->Update();
+		//World.GetSystem<CombatSystem>()->Update();
 		World.GetSystem<RenderSystem>()->Update();
+		World.GetSystem<LoggingSystem>()->Update(dt);
 	}
 }
 
