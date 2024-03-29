@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <bitset>
 #include <cassert>
 #include <cstdint>
@@ -10,8 +9,9 @@
 #include <typeinfo>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
-#define MAX_ENTITIES 5000
+#define MAX_BATCH_ENTITIES 5000
 #define MAX_COMPONENTS 32
 
 using ID			= std::uint32_t;
@@ -50,8 +50,9 @@ class Entity
 class EntityManager
 {
 	std::queue<Entity> mEntities{};
-	std::array<Signature, MAX_ENTITIES> mSignatures{};
-	size_t LiveEntitiesCount{0};
+	std::vector<Signature> mSignatures{};
+	size_t mLiveEntitiesCount{0};
+	size_t mTotalEntitiesCount{MAX_BATCH_ENTITIES};
 
   public:
 	EntityManager();
@@ -77,7 +78,7 @@ class ComponentArray : public IComponentArray
 	}
 	std::unordered_map<Entity, size_t, decltype(entityHash())> mEntityToIndex{};
 	std::unordered_map<size_t, Entity> mIndexToEntity{};
-	std::array<T, MAX_ENTITIES> mData{};
+	std::vector<T> mData{};
 	size_t mEntityCount{0};
 
   public:
@@ -178,35 +179,48 @@ class World
 
 inline EntityManager::EntityManager()
 {
-	for (ID id = 0; id < MAX_ENTITIES; ++id)
+	for (ID id = 0; id < mTotalEntitiesCount; ++id)
+	{
 		mEntities.emplace(id);
+		mSignatures.emplace_back(0);
+	}
 }
 inline Entity EntityManager::AddEntity()
 {
-	assert((LiveEntitiesCount < MAX_ENTITIES) && "invalid entity.");
+	//	assert((mLiveEntitiesCount < MAX_ENTITIES) && "invalid entity.");
 
 	Entity newEntity = mEntities.front();
 	mEntities.pop();
-	++LiveEntitiesCount;
+	++mLiveEntitiesCount;
+	if (mLiveEntitiesCount >= mTotalEntitiesCount)
+	{
+		size_t newTotalEntitiescount = mTotalEntitiesCount+MAX_BATCH_ENTITIES;
+		for (ID id = mTotalEntitiesCount; id < newTotalEntitiescount; ++id)
+		{
+			mEntities.emplace(id);
+			mSignatures.emplace_back(0);
+		}
+		mTotalEntitiesCount = newTotalEntitiescount;
+	}
 	return newEntity;
 }
 inline void EntityManager::RemoveEntity(Entity entity)
 {
-	assert((entity < MAX_ENTITIES) && "invalid entity.");
+	//	assert((entity < MAX_ENTITIES) && "invalid entity.");
 
 	mEntities.emplace(entity);
 	mSignatures[entity].reset();
-	--LiveEntitiesCount;
+	--mLiveEntitiesCount;
 }
 inline void EntityManager::SetSignature(Entity entity, Signature signature)
 {
-	assert((entity < MAX_ENTITIES) && "invalid entity.");
+	//	assert((entity < MAX_ENTITIES) && "invalid entity.");
 
 	mSignatures[entity] = signature;
 }
 inline Signature EntityManager::GetSignature(Entity entity)
 {
-	assert((entity < MAX_ENTITIES) && "invalid entity.");
+	//	assert((entity < MAX_ENTITIES) && "invalid entity.");
 
 	return mSignatures[entity];
 }
@@ -218,7 +232,10 @@ void ComponentArray<T>::AddComponent(Entity entity, T comp)
 		   "entity already has this component.");
 	mEntityToIndex.insert({entity, mEntityCount});
 	mIndexToEntity.insert({mEntityCount, entity});
-	mData[mEntityCount] = comp;
+	if (mData.size() > mEntityCount)
+		mData[mEntityCount] = comp;
+	else
+		mData.emplace_back(comp);
 	++mEntityCount;
 }
 template <typename T>
@@ -454,7 +471,7 @@ inline void Entity::Destory()
 } // namespace internal
 extern std::shared_ptr<internal::World> WorldPtr;
 extern bool Exit;
-extern std::string AssetsPath; 
+extern std::string AssetsPath;
 void Init();
 void Build();
 void Run();
